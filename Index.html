@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silsilah Keluarga / Tarombo Online v6</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* Pengaturan Dasar */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #fdfbf7; 
+            padding: 50px 20px; 
+            text-align: center; 
+            overflow-x: auto;
+        }
+
+        p.petunjuk { color: #8b4513; margin-bottom: 40px; font-size: 14px; }
+
+        /* Struktur Pohon/Akar */
+        .tree { display: inline-block; white-space: nowrap; }
+        .tree ul { 
+            padding-top: 20px; position: relative; 
+            display: flex; justify-content: center; 
+        }
+        .tree li { 
+            text-align: center; list-style-type: none; position: relative; 
+            padding: 20px 10px 0 10px; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+
+        /* Garis Penghubung antar elemen */
+        .tree li::before, .tree li::after { 
+            content: ''; position: absolute; top: 0; right: 50%; 
+            border-top: 2px solid #8b4513; 
+            width: 50%; height: 20px; 
+        }
+        .tree li::after { 
+            right: auto; left: 50%; 
+            border-left: 2px solid #8b4513; 
+        }
+
+        /* Hapus garis untuk anak tunggal */
+        .tree li:only-child::after, .tree li:only-child::before { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        .tree li:last-child::before { border-right: 2px solid #8b4513; border-radius: 0 5px 0 0; }
+        .tree li:first-child::after { border-radius: 5px 0 0 0; }
+
+        .tree ul ul::before { 
+            content: ''; position: absolute; top: 0; left: 50%; 
+            border-left: 2px solid #8b4513; width: 0; height: 20px; 
+            transform: translateX(-50%); 
+        }
+
+        /* Desain Kotak Nama */
+        .node { 
+            background-color: #fef3c7; 
+            border: 2px solid #b45309; 
+            padding: 15px 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            position: relative; 
+            min-width: 200px; 
+            max-width: 250px; 
+            transition: 0.3s ease-in-out; 
+            display: inline-block;
+            text-align: left;
+            white-space: normal; 
+        }
+        .node:hover { background-color: #fde68a; box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+
+        /* Style untuk tiap baris data di dalam kotak */
+        .info-row {
+            display: flex; 
+            align-items: flex-start;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #78350f;
+            line-height: 1.4;
+        }
+
+        .label { white-space: nowrap; margin-right: 5px; }
+
+        /* Teks isian yang bisa diubah */
+        .node span.editable { 
+            flex: 1; 
+            display: inline-block; 
+            font-weight: bold; 
+            outline: none; 
+            border-bottom: 1px dashed #d97706; 
+            padding-bottom: 2px; 
+            cursor: text; 
+            min-width: 50px;
+            word-wrap: break-word; 
+        }
+        .node span.editable:focus { background-color: #fff; border-bottom-style: solid; border-radius: 4px;}
+
+        /* Wrapper tombol */
+        .btn-container { text-align: center; margin-top: 10px; }
+
+        /* Tombol Tambah (+) */
+        .btn-add { 
+            background-color: #10b981; color: white; border: none; 
+            border-radius: 50%; cursor: pointer; font-weight: bold; 
+            width: 26px; height: 26px; font-size: 16px; 
+            display: inline-flex; align-items: center; justify-content: center; 
+            transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .btn-add:hover { background-color: #059669; transform: scale(1.1); }
+
+        /* Tombol Hapus (x) */
+        .btn-del { 
+            background-color: #ef4444; color: white; border: none; 
+            border-radius: 50%; cursor: pointer; font-weight: bold; 
+            width: 22px; height: 22px; font-size: 12px; 
+            position: absolute; top: -10px; right: -10px; 
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .node:hover .btn-del { opacity: 1; }
+        .btn-del:hover { background-color: #dc2626; transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <p class="petunjuk">Klik pada bagian teks untuk mengedit data secara langsung.</p>
+
+    <div class="tree" id="family-tree">Loading data dari database...</div>
+
+    <script>
+        // Konfigurasi Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyCjjdpq1WHpM93r2wd9nz-Yc_7eBfLfhz8",
+          authDomain: "silsilah-opung.firebaseapp.com",
+          databaseURL: "https://silsilah-opung-default-rtdb.firebaseio.com",
+          projectId: "silsilah-opung",
+          storageBucket: "silsilah-opung.firebasestorage.app",
+          messagingSenderId: "164906763858",
+          appId: "1:164906763858:web:e671eb32a8cf940560018b",
+          measurementId: "G-QRDHE3JCGM"
+        };
+
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const treeRef = db.ref('silsilah_keluarga');
+
+        // Mendengarkan perubahan data secara Realtime
+        treeRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            
+            if (!data) {
+                const defaultData = {
+                    "root": { 
+                        id: "root", 
+                        name: "Silsilah Keluarga", 
+                        status: "",
+                        spouse: "", 
+                        domicile: "", 
+                        parentId: null 
+                    }
+                };
+                treeRef.set(defaultData);
+                return;
+            }
+            
+            renderTree(data);
+        });
+
+        function renderTree(data) {
+            const container = document.getElementById('family-tree');
+            container.innerHTML = '';
+
+            let rootNode = null;
+            for (let id in data) {
+                if (!data[id].parentId) {
+                    rootNode = data[id];
+                    break;
+                }
+            }
+
+            if (!rootNode) return;
+
+            const mainUl = document.createElement('ul');
+            mainUl.appendChild(createLiElement(rootNode, data));
+            container.appendChild(mainUl);
+        }
+
+        function createLiElement(node, allData) {
+            const li = document.createElement('li');
+            const isRoot = !node.parentId;
+
+            // Jika Kotak Judul Utama (Paling Atas)
+            if (isRoot) {
+                li.innerHTML = `
+                    <div class="node" style="text-align: center; min-width: 220px;">
+                        <div style="font-size: 20px; font-weight: bold; color: #78350f; margin-bottom: 12px; border-bottom: 2px solid #d97706; padding-bottom: 5px;">SILSILAH KELUARGA</div>
+                        <div class="btn-container" style="margin-top: 0;">
+                            <button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah Keturunan">+</button>
+                        </div>
+                    </div>
+                `;
+            } 
+            // Jika Kotak Keturunan (Bisa Diedit)
+            else {
+                const status = node.status || "-";
+                const name = node.name || "-";
+                const spouse = node.spouse || "-";
+                const domicile = node.domicile || "-";
+
+                li.innerHTML = `
+                    <div class="node">
+                        <button class="btn-del" onclick="hapusNode('${node.id}')" title="Hapus">X</button>
+                        
+                        <div class="info-row" style="border-bottom: 1px dotted #b45309; padding-bottom: 5px; margin-bottom: 8px;">
+                            <span class="label">🏷️ Catatan:</span>
+                            <span class="editable" style="color: #b45309; font-style: italic;" contenteditable="true" onblur="ubahData('${node.id}', 'status', this.innerText)">${status}</span>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="label">👤 Nama:</span>
+                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'name', this.innerText)">${name}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">💍 Pasangan:</span>
+                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'spouse', this.innerText)">${spouse}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">📍 Domisili:</span>
+                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'domicile', this.innerText)">${domicile}</span>
+                        </div>
+                        
+                        <div class="btn-container">
+                            <button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah Keturunan">+</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const children = [];
+            for (let id in allData) {
+                if (allData[id].parentId === node.id) {
+                    children.push(allData[id]);
+                }
+            }
+
+            if (children.length > 0) {
+                const ul = document.createElement('ul');
+                children.forEach(child => {
+                    ul.appendChild(createLiElement(child, allData));
+                });
+                li.appendChild(ul);
+            }
+
+            return li;
+        }
+
+        function tambahAnak(parentId) {
+            const newId = 'node_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            db.ref('silsilah_keluarga/' + newId).set({
+                id: newId,
+                status: "Anak", // Default tulisan saat ditambah baru
+                name: "Nama Keturunan",
+                spouse: "-", 
+                domicile: "-", 
+                parentId: parentId
+            });
+        }
+
+        function ubahData(id, field, nilaiBaru) {
+            let nilaiClean = nilaiBaru.trim();
+            if (nilaiClean === "") {
+                nilaiClean = "-";
+            }
+            db.ref('silsilah_keluarga/' + id + '/' + field).set(nilaiClean);
+        }
+
+        function hapusNode(id) {
+            if (confirm("Hapus nama ini? (Keturunan di bawahnya akan naik posisinya ke atas)")) {
+                treeRef.once('value').then((snapshot) => {
+                    const data = snapshot.val();
+                    const targetNode = data[id];
+                    const parentId = targetNode.parentId; 
+
+                    const updates = {};
+                    updates['silsilah_keluarga/' + id] = null; 
+
+                    for (let key in data) {
+                        if (data[key].parentId === id) {
+                            updates['silsilah_keluarga/' + key + '/parentId'] = parentId;
+                        }
+                    }
+
+                    db.ref().update(updates);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
