@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Silsilah Keluarga / Tarombo</title>
     
+    <!-- Memuat Library Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
@@ -12,22 +13,44 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #fdfbf7; 
-            padding: 40px 20px; 
-            text-align: center; 
-            overflow-x: auto;
+            background-color: #fdfbf7; padding: 40px 20px; 
+            text-align: center; overflow-x: auto;
         }
 
-        p.petunjuk { color: #8b4513; margin-bottom: 20px; font-size: 14px; }
+        /* --- DESAIN MENU LOGIN --- */
+        #login-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 12px;
+            width: 90%; max-width: 350px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .login-box h3 { margin-bottom: 10px; color: #451a03; font-size: 22px; }
+        .login-box p { margin-bottom: 20px; color: #78350f; font-size: 14px; }
+        .login-box input {
+            width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #d97706; 
+            border-radius: 6px; font-size: 14px; background-color: #fef3c7;
+        }
+        .btn-login {
+            width: 100%; padding: 12px; border: none; border-radius: 6px; 
+            font-weight: bold; cursor: pointer; margin-bottom: 10px; font-size: 14px; transition: 0.2s;
+        }
+        .btn-admin-login { background-color: #0284c7; color: white; }
+        .btn-admin-login:hover { background-color: #0369a1; transform: scale(1.02); }
+        .btn-tamu-login { background-color: #10b981; color: white; }
+        .btn-tamu-login:hover { background-color: #059669; transform: scale(1.02); }
+        /* ------------------------- */
+
+        p.petunjuk { color: #8b4513; margin-bottom: 20px; font-size: 14px; font-weight: bold; background: #fef3c7; padding: 10px; border-radius: 8px; display: inline-block; border: 1px dashed #b45309; }
 
         #btn-back {
-            display: none; 
-            background-color: #451a03; color: white; 
-            border: none; padding: 10px 20px; 
-            border-radius: 8px; font-weight: bold; 
-            cursor: pointer; margin-bottom: 30px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-            transition: 0.2s;
+            display: none; background-color: #451a03; color: white; 
+            border: none; padding: 10px 20px; border-radius: 8px; 
+            font-weight: bold; cursor: pointer; margin-bottom: 30px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: 0.2s;
         }
         #btn-back:hover { background-color: #78350f; transform: scale(1.05); }
 
@@ -43,7 +66,6 @@
             border-top: 2px solid #8b4513; width: 50%; height: 20px; 
         }
         .tree li::after { right: auto; left: 50%; border-left: 2px solid #8b4513; }
-
         .tree li:only-child::after, .tree li:only-child::before { display: none; }
         .tree li:only-child { padding-top: 0; }
         .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
@@ -65,25 +87,28 @@
         }
         .node:hover { background-color: #fde68a; box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
 
-        .info-row {
-            display: flex; align-items: flex-start; margin-bottom: 8px; font-size: 14px; color: #78350f; line-height: 1.4;
-        }
+        .info-row { display: flex; align-items: flex-start; margin-bottom: 8px; font-size: 14px; color: #78350f; line-height: 1.4; }
         .label { white-space: nowrap; margin-right: 5px; }
 
         .node span.editable { 
             flex: 1; display: inline-block; font-weight: bold; 
             outline: none; border-bottom: 1px dashed #d97706; 
-            padding-bottom: 2px; cursor: text; min-width: 50px;
-            word-wrap: break-word; 
+            padding-bottom: 2px; cursor: text; min-width: 50px; word-wrap: break-word; 
         }
         .node span.editable:focus { background-color: #fff; border-bottom-style: solid; border-radius: 4px;}
+        
+        .node span.readonly { 
+            flex: 1; display: inline-block; font-weight: bold; 
+            outline: none; border-bottom: none; padding-bottom: 2px; 
+            min-width: 50px; word-wrap: break-word; color: #451a03; 
+        }
 
         .btn-container { text-align: center; margin-top: 10px; }
 
         .btn-add { 
             background-color: #10b981; color: white; border: none; 
             border-radius: 50%; cursor: pointer; font-weight: bold; 
-            width: 26px; height: 26px; font-size: 16px; 
+            width: 28px; height: 28px; font-size: 18px; 
             display: inline-flex; align-items: center; justify-content: center; 
             transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
@@ -111,32 +136,79 @@
 </head>
 <body>
 
-    <button id="btn-back" onclick="kembaliKeUtama()">⬅️ Kembali ke Daftar Opung</button>
-    <p class="petunjuk" id="teks-petunjuk">Klik pada teks untuk mengedit. Data tersimpan otomatis.</p>
+    <!-- OVERLAY LOGIN -->
+    <div id="login-modal">
+        <div class="login-box">
+            <h3>Tarombo Keluarga</h3>
+            <p>Silakan pilih mode akses Anda:</p>
+            
+            <button type="button" class="btn-login btn-tamu-login" onclick="masukTamu()">👤 MASUK SEBAGAI TAMU (Lihat Saja)</button>
+            
+            <hr style="margin: 20px 0; border: 0; border-top: 1px dashed #ccc;">
+            
+            <p style="margin-bottom: 10px; font-size: 13px;">Khusus Pengelola (Admin):</p>
+            <input type="text" id="input-user" placeholder="Username ">
+            <input type="password" id="input-pass" placeholder="Password ">
+            <button type="button" class="btn-login btn-admin-login" onclick="masukAdmin()">👑 LOGIN ADMIN</button>
+        </div>
+    </div>
 
-    <div class="tree" id="family-tree">Loading data dari database...</div>
+    <button id="btn-back" onclick="kembaliKeAtas()">⬅️ Kembali ke Tingkat Sebelumnya</button>
+    <br>
+    <p class="petunjuk" id="teks-petunjuk">Memuat Silsilah...</p>
 
+    <div class="tree" id="family-tree"></div>
+
+    <!-- SCRIPT UTAMA -->
     <script>
-        const firebaseConfig = {
-          apiKey: "AIzaSyCjjdpq1WHpM93r2wd9nz-Yc_7eBfLfhz8",
-          authDomain: "silsilah-opung.firebaseapp.com",
-          databaseURL: "https://silsilah-opung-default-rtdb.firebaseio.com",
-          projectId: "silsilah-opung",
-          storageBucket: "silsilah-opung.firebasestorage.app",
-          messagingSenderId: "164906763858",
-          appId: "1:164906763858:web:e671eb32a8cf940560018b",
-          measurementId: "G-QRDHE3JCGM"
-        };
+        // KODE LOGIN DITANGANI LEBIH DULU AGAR PASTI BISA DIKLIK
+        let isAdmin = false; 
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const treeRef = db.ref('silsilah_keluarga');
+        function masukTamu() {
+            isAdmin = false;
+            document.getElementById('login-modal').style.display = 'none';
+            if (typeof renderTree === "function") renderTree();
+        }
+
+        function masukAdmin() {
+            // .trim() digunakan untuk mencegah error jika ada spasi otomatis dari keyboard HP
+            const user = document.getElementById('input-user').value.trim();
+            const pass = document.getElementById('input-pass').value.trim();
+
+            if (user === "Admin" && pass === "Jumaeluk") {
+                isAdmin = true;
+                document.getElementById('login-modal').style.display = 'none';
+                alert("Berhasil masuk sebagai Admin!");
+                if (typeof renderTree === "function") renderTree();
+            } else {
+                alert("Username atau Password salah! Pastikan huruf besar/kecilnya sesuai.");
+            }
+        }
+
+        // KODE FIREBASE DATABASE
+        try {
+            const firebaseConfig = {
+              apiKey: "AIzaSyCjjdpq1WHpM93r2wd9nz-Yc_7eBfLfhz8",
+              authDomain: "silsilah-opung.firebaseapp.com",
+              databaseURL: "https://silsilah-opung-default-rtdb.firebaseio.com",
+              projectId: "silsilah-opung",
+              storageBucket: "silsilah-opung.firebasestorage.app",
+              messagingSenderId: "164906763858",
+              appId: "1:164906763858:web:e671eb32a8cf940560018b",
+              measurementId: "G-QRDHE3JCGM"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            var db = firebase.database();
+            var treeRef = db.ref('silsilah_keluarga');
+        } catch (error) {
+            console.error("Firebase Error: ", error);
+        }
 
         let globalData = {};
         let activeRootId = 'root'; 
 
         history.replaceState({ id: 'root' }, "", window.location.pathname);
-
         window.addEventListener('popstate', function(event) {
             if (event.state && event.state.id) {
                 activeRootId = event.state.id;
@@ -146,36 +218,60 @@
             renderTree();
         });
 
-        treeRef.on('value', (snapshot) => {
-            globalData = snapshot.val();
-            
-            if (!globalData) {
-                const defaultData = {
-                    "root": { id: "root", name: "Silsilah Keluarga", parentId: null }
-                };
-                treeRef.set(defaultData);
-                return;
+        if (treeRef) {
+            treeRef.on('value', (snapshot) => {
+                globalData = snapshot.val();
+                if (!globalData) {
+                    treeRef.set({ "root": { id: "root", name: "Silsilah Keluarga", parentId: null } });
+                    return;
+                }
+                renderTree();
+            });
+        }
+
+        function getAbsoluteDepth(nodeId) {
+            if (nodeId === 'root') return 0;
+            let depth = 0;
+            let currentId = nodeId;
+            while (currentId !== 'root' && globalData[currentId]) {
+                depth++;
+                currentId = globalData[currentId].parentId;
             }
-            
-            renderTree();
-        });
+            return depth;
+        }
+
+        function hitungGenerasi(absDepth) {
+            if (absDepth === 1) return "Leluhur";
+            if (absDepth === 2) return "Opung";
+            if (absDepth === 3) return "Anak opung";
+            if (absDepth === 4) return "Cucu opung";
+            if (absDepth === 5) return "Cicit opung";
+            if (absDepth === 6) return "Entai opung";
+            return "Keturunan selanjutnya"; 
+        }
 
         function renderTree() {
+            if (document.getElementById('login-modal').style.display !== 'none') return;
+
             const container = document.getElementById('family-tree');
             const backBtn = document.getElementById('btn-back');
             const petunjuk = document.getElementById('teks-petunjuk');
             container.innerHTML = '';
 
-            if (activeRootId === 'root') {
+            const focusDepth = getAbsoluteDepth(activeRootId);
+            let modeTeks = isAdmin ? " [MODE ADMIN]" : " [MODE TAMU - Hanya Lihat]";
+
+            if (focusDepth === 0) {
                 backBtn.style.display = 'none';
-                petunjuk.innerText = "HALAMAN UTAMA: Tambahkan nama-nama Opung di bawah ini.";
+                petunjuk.innerHTML = "HALAMAN UTAMA" + modeTeks;
             } else {
                 backBtn.style.display = 'inline-block';
-                petunjuk.innerText = "MODE FOKUS: Menampilkan silsilah spesifik.";
+                if (focusDepth === 1) petunjuk.innerHTML = "KAMAR LELUHUR" + modeTeks;
+                else if (focusDepth === 2) petunjuk.innerHTML = "KAMAR OPUNG" + modeTeks;
+                else petunjuk.innerHTML = "KAMAR ANAK" + modeTeks;
             }
 
             const rootNode = globalData[activeRootId];
-            
             if (!rootNode) {
                 activeRootId = 'root';
                 renderTree();
@@ -183,63 +279,87 @@
             }
 
             const mainUl = document.createElement('ul');
-            mainUl.appendChild(createLiElement(rootNode, globalData, 0));
+            mainUl.appendChild(createLiElement(rootNode, globalData));
             container.appendChild(mainUl);
         }
 
-        function createLiElement(node, allData, depth) {
+        function createLiElement(node, allData) {
             const li = document.createElement('li');
             
             const isAbsoluteRoot = (node.parentId === null || node.id === 'root');
             const isCurrentTop = (node.id === activeRootId);
-            const isMainPage = (activeRootId === 'root');
+            
+            const absDepth = getAbsoluteDepth(node.id);
+            const focusDepth = getAbsoluteDepth(activeRootId);
 
-            if (isAbsoluteRoot && isCurrentTop) {
-                li.innerHTML = `
-                    <div class="node" style="text-align: center; min-width: 220px;">
-                        <div style="font-size: 20px; font-weight: bold; color: #78350f; margin-bottom: 12px; border-bottom: 2px solid #d97706; padding-bottom: 5px;">SILSILAH KELUARGA</div>
-                        <div class="btn-container" style="margin-top: 0;">
-                            <button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah Opung Baru">+</button>
+            function buatSpan(field, value) {
+                if (isAdmin) {
+                    return `<span class="editable" contenteditable="true" onblur="ubahData('${node.id}', '${field}', this.innerText)">${value}</span>`;
+                } else {
+                    return `<span class="readonly">${value}</span>`;
+                }
+            }
+
+            if (isCurrentTop) {
+                if (isAbsoluteRoot) {
+                    li.innerHTML = `
+                        <div class="node" style="text-align: center; min-width: 220px;">
+                            <div style="font-size: 20px; font-weight: bold; color: #78350f; margin-bottom: 12px; border-bottom: 2px solid #d97706; padding-bottom: 5px;">SILSILAH KELUARGA</div>
+                            <div class="btn-container" style="margin-top: 0;">
+                                ${isAdmin ? `<button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah Leluhur">+</button>` : ''}
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    let titleTambah = "Tambah Keturunan";
+                    if (focusDepth === 1) titleTambah = "Tambah Opung";
+                    if (focusDepth === 2) titleTambah = "Tambah Anak";
+                    if (focusDepth === 3) titleTambah = "Tambah Cucu";
+
+                    li.innerHTML = `
+                        <div class="node" style="border: 3px solid #0284c7; background-color: #e0f2fe;">
+                            <div style="font-size: 16px; font-weight: bold; color: #0284c7; text-align: center; margin-bottom: 10px; border-bottom: 2px solid #0284c7; padding-bottom: 5px;">📍 SEDANG DIBUKA</div>
+                            <div class="info-row"><span class="label">🏷️ Catatan:</span>${buatSpan('status', node.status || '-')}</div>
+                            <div class="info-row"><span class="label">👤 Nama:</span>${buatSpan('name', node.name || '-')}</div>
+                            <div class="info-row"><span class="label">💍 Pasangan:</span>${buatSpan('spouse', node.spouse || '-')}</div>
+                            <div class="info-row"><span class="label">📍 Domisili:</span>${buatSpan('domicile', node.domicile || '-')}</div>
+                            
+                            <div class="btn-container">
+                                ${isAdmin ? `<button class="btn-add" onclick="tambahAnak('${node.id}')" title="${titleTambah}">+</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
             } 
             else {
-                const status = node.status || "-";
-                const name = node.name || "-";
-                const spouse = node.spouse || "-";
-                const domicile = node.domicile || "-";
-
                 let actionButtons = '';
                 
-                if (isMainPage && depth === 1) {
-                    actionButtons = `<button class="btn-focus" onclick="fokusKe('${node.id}')">🌳 Buka Silsilah</button>`;
+                if (absDepth === 1) {
+                    actionButtons = `<button class="btn-focus" onclick="fokusKe('${node.id}')">🌳 Buka Daftar Opung</button>`;
+                } else if (absDepth === 2) {
+                    actionButtons = `<button class="btn-focus" onclick="fokusKe('${node.id}')">🌳 Buka Daftar Anak Opung</button>`;
+                } else if (absDepth === 3) {
+                    actionButtons = `<button class="btn-focus" onclick="fokusKe('${node.id}')">🌳 Buka Daftar Cucu Opung</button>`;
+                } else if (absDepth === 4) {
+                    actionButtons = `<button class="btn-focus" onclick="fokusKe('${node.id}')">🌳 Buka Daftar Cicit Opung</button>`;
                 } else {
-                    actionButtons = `<button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah Keturunan">+</button>`;
+                    if (isAdmin) {
+                        actionButtons = `<button class="btn-add" onclick="tambahAnak('${node.id}')" title="Tambah ${hitungGenerasi(absDepth+1)}">+</button>`;
+                    }
                 }
 
-                const deleteButton = (!isCurrentTop) ? `<button class="btn-del" onclick="hapusNode('${node.id}')" title="Hapus">X</button>` : '';
+                const deleteButton = isAdmin ? `<button class="btn-del" onclick="hapusNode('${node.id}')" title="Hapus">X</button>` : '';
 
                 li.innerHTML = `
                     <div class="node">
                         ${deleteButton}
                         
                         <div class="info-row" style="border-bottom: 1px dotted #b45309; padding-bottom: 5px; margin-bottom: 8px;">
-                            <span class="label">🏷️ Catatan:</span>
-                            <span class="editable" style="color: #b45309; font-style: italic;" contenteditable="true" onblur="ubahData('${node.id}', 'status', this.innerText)">${status}</span>
+                            <span class="label">🏷️ Catatan:</span>${buatSpan('status', node.status || '-')}
                         </div>
-                        <div class="info-row">
-                            <span class="label">👤 Nama:</span>
-                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'name', this.innerText)">${name}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">💍 Pasangan:</span>
-                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'spouse', this.innerText)">${spouse}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="label">📍 Domisili:</span>
-                            <span class="editable" contenteditable="true" onblur="ubahData('${node.id}', 'domicile', this.innerText)">${domicile}</span>
-                        </div>
+                        <div class="info-row"><span class="label">👤 Nama:</span>${buatSpan('name', node.name || '-')}</div>
+                        <div class="info-row"><span class="label">💍 Pasangan:</span>${buatSpan('spouse', node.spouse || '-')}</div>
+                        <div class="info-row"><span class="label">📍 Domisili:</span>${buatSpan('domicile', node.domicile || '-')}</div>
                         
                         <div class="btn-container">
                             ${actionButtons}
@@ -248,23 +368,23 @@
                 `;
             }
 
-            if (isMainPage && depth >= 1) {
-                return li; 
-            }
-
-            const children = [];
-            for (let id in allData) {
-                if (allData[id].parentId === node.id) {
-                    children.push(allData[id]);
+            let shouldDrawChildren = true;
+            if (focusDepth < 4) {
+                if (absDepth > focusDepth) {
+                    shouldDrawChildren = false;
                 }
             }
 
-            if (children.length > 0) {
-                const ul = document.createElement('ul');
-                children.forEach(child => {
-                    ul.appendChild(createLiElement(child, allData, depth + 1));
-                });
-                li.appendChild(ul);
+            if (shouldDrawChildren) {
+                const children = [];
+                for (let id in allData) {
+                    if (allData[id].parentId === node.id) children.push(allData[id]);
+                }
+                if (children.length > 0) {
+                    const ul = document.createElement('ul');
+                    children.forEach(child => ul.appendChild(createLiElement(child, allData)));
+                    li.appendChild(ul);
+                }
             }
 
             return li;
@@ -272,42 +392,25 @@
 
         function fokusKe(id) {
             activeRootId = id;
-            history.pushState({ id: id }, "", "?opung=" + id); 
+            history.pushState({ id: id }, "", "?kamar=" + id); 
             renderTree();
         }
 
-        function kembaliKeUtama() {
-            activeRootId = 'root';
-            history.pushState({ id: 'root' }, "", window.location.pathname); 
-            renderTree();
-        }
-
-        // FUNGSI PINTAR: Menghitung generasi sesuai permintaan persis
-        function hitungGenerasi(parentId) {
-            if (parentId === 'root') return "Opung/leluhur";
-            
-            let kedalaman = 0;
-            let currentId = parentId;
-            
-            // Menelusuri ke atas sampai menyentuh akar utama
-            while (currentId !== 'root' && globalData[currentId]) {
-                kedalaman++;
-                currentId = globalData[currentId].parentId;
+        function kembaliKeAtas() {
+            if (activeRootId !== 'root' && globalData[activeRootId]) {
+                const parentId = globalData[activeRootId].parentId;
+                activeRootId = parentId;
+                history.pushState({ id: activeRootId }, "", "?kamar=" + activeRootId); 
+                renderTree();
             }
-            
-            // Menentukan teks berdasarkan kedalaman
-            if (kedalaman === 1) return "Anak opung";
-            if (kedalaman === 2) return "Cucu opung";
-            if (kedalaman === 3) return "Cicit opung";
-            if (kedalaman === 4) return "Entai opung";
-            
-            return "Keturunan opung"; // Jika dilanjutkan lebih jauh lagi
         }
 
         function tambahAnak(parentId) {
+            if (!isAdmin) return; 
+
             const newId = 'node_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            
-            let statusGenerasi = hitungGenerasi(parentId);
+            const parentDepth = getAbsoluteDepth(parentId);
+            const statusGenerasi = hitungGenerasi(parentDepth + 1);
 
             db.ref('silsilah_keluarga/' + newId).set({
                 id: newId,
@@ -320,18 +423,17 @@
         }
 
         function ubahData(id, field, nilaiBaru) {
+            if (!isAdmin) return;
             let nilaiClean = nilaiBaru.trim();
-            if (nilaiClean === "") {
-                nilaiClean = "-";
-            }
+            if (nilaiClean === "") nilaiClean = "-";
             db.ref('silsilah_keluarga/' + id + '/' + field).set(nilaiClean);
         }
 
         function hapusNode(id) {
+            if (!isAdmin) return;
             if (confirm("Hapus nama ini beserta seluruh keturunannya?")) {
                 const targetNode = globalData[id];
                 const parentId = targetNode.parentId; 
-
                 const updates = {};
                 updates['silsilah_keluarga/' + id] = null; 
 
@@ -342,9 +444,7 @@
                 }
 
                 db.ref().update(updates).then(() => {
-                    if (activeRootId === id) {
-                        kembaliKeUtama();
-                    }
+                    if (activeRootId === id) kembaliKeAtas();
                 });
             }
         }
